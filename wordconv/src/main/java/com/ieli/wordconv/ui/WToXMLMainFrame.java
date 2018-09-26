@@ -9,15 +9,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -65,8 +63,6 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 	IWordParser iWordParser = new WordParserImpl();
 	IXMLFormatter ixmlFormatter = new XMLFormatterImpl();
-
-	private Properties prop;
 
 	private ReportDialog reportDialog;
 
@@ -248,39 +244,49 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 	}
 
 	private void loadTableData() {
-		prop = new Properties();
-		InputStream input = null;
-
+		String line = null;
+		BufferedReader bufferedReader = null;
 		try {
 
-			input = new FileInputStream("./config.properties");
+			FileReader fileReader = new FileReader("./config.properties");
 
-			// load a properties file
-			prop.load(input);
-
-			Set<Object> propNames = prop.keySet();
+			bufferedReader = new BufferedReader(fileReader);
 
 			Object[][] stylesData = { { "" } };
 
-			if (propNames.size() != 0) {
-				stylesData = new Object[1][propNames.size()];
+			Object[][] typesData = { { "" } };
+
+			List<String> styles = new ArrayList<String>();
+			List<String> types = new ArrayList<String>();
+
+			while ((line = bufferedReader.readLine()) != null) {
+				if (!line.equals("")) {
+					if (line.contains(",")) {
+						styles.add(line.split(",")[0]);
+						types.add(line.split(",")[1]);
+					} else {
+						styles.add(line.split(",")[0]);
+					}
+				}
+			}
+
+			if (styles.size() != 0) {
+				stylesData = new Object[styles.size()][];
 
 				int rowIndex = 0;
-				for (Object propName : propNames) {
+				for (String propName : styles) {
 					stylesData[rowIndex] = new Object[] { propName.toString() };
 					rowIndex++;
 				}
 
 			}
 
-			Object[][] typesData = { { "" } };
-
-			if (propNames.size() != 0) {
-				typesData = new Object[1][propNames.size()];
+			if (types.size() != 0) {
+				typesData = new Object[types.size()][];
 
 				int rowIndex = 0;
-				for (Object propName : propNames) {
-					typesData[rowIndex] = new Object[] { prop.get(propName) };
+				for (String propName : types) {
+					typesData[rowIndex] = new Object[] { propName.toString() };
 					rowIndex++;
 				}
 
@@ -289,12 +295,16 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 			startingStyleTbl.setModel(new CustomTableModel(stylesData, new String[] { "Starting Style" }));
 			pageTypesTbl.setModel(new CustomTableModel(typesData, new String[] { "Page Type" }));
 
-		} catch (IOException ex) {
+			bufferedReader.close();
+
+		} catch (
+
+		IOException ex) {
 			logger.error(StackTraceHandler.getErrString(ex));
 		} finally {
-			if (input != null) {
+			if (bufferedReader != null) {
 				try {
-					input.close();
+					bufferedReader.close();
 				} catch (IOException e) {
 					logger.error(StackTraceHandler.getErrString(e));
 				}
@@ -329,6 +339,7 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 			dirFileTxtFld.setText("");
 			setCursor(null);
 		}
+
 	}
 
 	public void generateXMLFiles(List<File> files) {
@@ -354,10 +365,45 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 				saveFileChooser.setFile(file.getAbsolutePath().replaceAll(".docx", ".xml"));
 				saveFileChooser.setVisible(true);
 				if (saveFileChooser.getDirectory() != null && saveFileChooser.getFile() != null) {
+					formattedXMLElements.add(new BookXML("", "", "</book>"));
+
+					// if (startingStyleTbl.getRowCount() > 0 &&
+					// pageTypesTbl.getRowCount() > 0) {
+					//
+					// for (int i = 0; i < startingStyleTbl.getRowCount(); i++)
+					// {
+					//
+					// String startingTag = startingStyleTbl.getValueAt(i,
+					// 0).toString();
+					// String endingTag = startingStyleTbl.getValueAt(i + 1,
+					// 0).toString();
+					//
+					// int booksIndex = 0;
+					// for (BookXML bookXML : formattedXMLElements) {
+					// if (bookXML.getTagStart().equals("<" + startingTag +
+					// ">")) {
+					//
+					// BookXML dynBookXML = new
+					// BookXML(pageTypesTbl.getValueAt(i, 0).toString(), "",
+					// "");
+					// formattedXMLElements.add(booksIndex - 1, dynBookXML);
+					//
+					// } else {
+					// BookXML dynBookXML = new
+					// BookXML(pageTypesTbl.getValueAt(i, 0).toString(), "",
+					// "");
+					// formattedXMLElements.add(booksIndex + 1, dynBookXML);
+					// break;
+					// }
+					//
+					// booksIndex++;
+					// }
+					// }
+					//
+					// }
 
 					FileWriter writer = new FileWriter(
 							saveFileChooser.getDirectory() + StaticData.OS_FILE_SEP + saveFileChooser.getFile());
-					formattedXMLElements.add(new BookXML("", "", "</book>"));
 					for (BookXML bookXML : formattedXMLElements) {
 						writer.write(bookXML.toString());
 					}
