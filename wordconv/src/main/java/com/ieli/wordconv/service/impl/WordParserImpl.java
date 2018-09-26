@@ -19,7 +19,7 @@ import com.ieli.wordconv.util.StaticData;
 
 public class WordParserImpl implements IWordParser {
 
-	public List<String> getXMLFromWord(String inputFile) throws InvalidFormatException, IOException {
+	public List<BookXML> getXMLFromWord(String inputFile) throws InvalidFormatException, IOException {
 
 		FileInputStream fis = new FileInputStream(inputFile);
 		XWPFDocument xdoc = new XWPFDocument(OPCPackage.open(fis));
@@ -43,7 +43,7 @@ public class WordParserImpl implements IWordParser {
 			} else {
 				style = "normal";
 			}
-			text = par.getText();
+			text = par.getParagraphText();
 
 			List<XWPFRun> runs = par.getRuns();
 			if (!runs.isEmpty()) {
@@ -77,12 +77,7 @@ public class WordParserImpl implements IWordParser {
 
 		xdoc.close();
 
-		List<String> finalList = new ArrayList<String>();
-		for (BookXML book : xmlElements) {
-			finalList.add(book.getTagStart() + book.getContent() + book.getTagEnd());
-		}
-
-		return finalList;
+		return xmlElements;
 	}
 
 }

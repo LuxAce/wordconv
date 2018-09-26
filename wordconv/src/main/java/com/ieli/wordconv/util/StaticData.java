@@ -5,6 +5,8 @@ import java.util.List;
 
 public class StaticData {
 
+	public static final List<String> FILE_EXT = new ArrayList<String>();
+
 	public static final List<String> IMAGE_STYLES = new ArrayList<String>();
 
 	static {
@@ -15,8 +17,11 @@ public class StaticData {
 		IMAGE_STYLES.add("Image4");
 		IMAGE_STYLES.add("Image5");
 		IMAGE_STYLES.add("Image6");
+
+		FILE_EXT.add("docx");
 	}
 
 	public static final String OS_NEW_LINE = System.getProperty("line.separator");
 	public static final String OS_FILE_SEP = System.getProperty("file.separator");
+
 }

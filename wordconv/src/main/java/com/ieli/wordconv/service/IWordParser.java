@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
+import com.ieli.wordconv.model.BookXML;
+
 public interface IWordParser {
 
-	List<String> getXMLFromWord(String inputFile) throws InvalidFormatException, IOException;
+	List<BookXML> getXMLFromWord(String inputFile) throws InvalidFormatException, IOException;
 }

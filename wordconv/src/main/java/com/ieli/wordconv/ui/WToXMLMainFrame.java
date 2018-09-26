@@ -12,7 +12,6 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -34,8 +33,11 @@ import javax.swing.border.TitledBorder;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
+import com.ieli.wordconv.model.BookXML;
 import com.ieli.wordconv.service.IWordParser;
+import com.ieli.wordconv.service.IXMLFormatter;
 import com.ieli.wordconv.service.impl.WordParserImpl;
+import com.ieli.wordconv.service.impl.XMLFormatterImpl;
 import com.ieli.wordconv.util.CustomTableModel;
 import com.ieli.wordconv.util.OSDetector;
 import com.ieli.wordconv.util.ScreenConfig;
@@ -62,6 +64,7 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 	private List<File> finalFiles;
 
 	IWordParser iWordParser = new WordParserImpl();
+	IXMLFormatter ixmlFormatter = new XMLFormatterImpl();
 
 	private Properties prop;
 
@@ -119,21 +122,10 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 				FileDialog filesChooser = new FileDialog(WToXMLMainFrame.this, "Select file(s)", FileDialog.LOAD);
 				filesChooser.setMultipleMode(true);
-				filesChooser.setFilenameFilter(new FilenameFilter() {
-
-					public boolean accept(File dir, String name) {
-						if (name.endsWith("docx")) {
-							return true;
-						} else {
-							return false;
-						}
-					}
-				});
 				if (userDir == null) {
 					userDir = System.getProperty("user.home");
 				}
 				filesChooser.setDirectory(userDir);
-
 				filesChooser.setVisible(true);
 				if (filesChooser.getFiles() != null) {
 
@@ -353,7 +345,8 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 				// reportDialog);
 				//
 
-				List<String> xmlElements = iWordParser.getXMLFromWord(file.getAbsolutePath());
+				List<BookXML> xmlElements = iWordParser.getXMLFromWord(file.getAbsolutePath());
+				List<BookXML> formattedXMLElements = ixmlFormatter.formatXMLList(xmlElements);
 
 				FileDialog saveFileChooser = new FileDialog(WToXMLMainFrame.this, "Save your new XML file(s)",
 						FileDialog.SAVE);
@@ -364,8 +357,9 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 					FileWriter writer = new FileWriter(
 							saveFileChooser.getDirectory() + StaticData.OS_FILE_SEP + saveFileChooser.getFile());
-					for (String str : xmlElements) {
-						writer.write(str);
+					formattedXMLElements.add(new BookXML("", "", "</book>"));
+					for (BookXML bookXML : formattedXMLElements) {
+						writer.write(bookXML.toString());
 					}
 					writer.close();
 
