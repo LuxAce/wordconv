@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -11,6 +12,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -19,7 +21,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -29,8 +30,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingWorker;
 import javax.swing.border.TitledBorder;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -41,6 +40,7 @@ import com.ieli.wordconv.util.CustomTableModel;
 import com.ieli.wordconv.util.OSDetector;
 import com.ieli.wordconv.util.ScreenConfig;
 import com.ieli.wordconv.util.StackTraceHandler;
+import com.ieli.wordconv.util.StaticData;
 
 import net.miginfocom.swing.MigLayout;
 
@@ -117,28 +117,33 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 			public void actionPerformed(ActionEvent e) {
 
-				JFileChooser filesChooser = new JFileChooser();
-				filesChooser.setMultiSelectionEnabled(true);
-				filesChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				filesChooser.setDialogTitle("Select file(s)");
-				FileFilter filter = new FileNameExtensionFilter("MS Word", "docx");
-				filesChooser.setFileFilter(filter);
+				FileDialog filesChooser = new FileDialog(WToXMLMainFrame.this, "Select file(s)", FileDialog.LOAD);
+				filesChooser.setMultipleMode(true);
+				filesChooser.setFilenameFilter(new FilenameFilter() {
+
+					public boolean accept(File dir, String name) {
+						if (name.endsWith("docx")) {
+							return true;
+						} else {
+							return false;
+						}
+					}
+				});
 				if (userDir == null) {
 					userDir = System.getProperty("user.home");
 				}
-				filesChooser.setCurrentDirectory(new File(userDir));
+				filesChooser.setDirectory(userDir);
 
-				int result = filesChooser.showOpenDialog(WToXMLMainFrame.this);
-
-				if (result == JFileChooser.APPROVE_OPTION) {
+				filesChooser.setVisible(true);
+				if (filesChooser.getFiles() != null) {
 
 					finalFiles = new ArrayList<File>();
 
-					File[] files = filesChooser.getSelectedFiles();
+					File[] files = filesChooser.getFiles();
 
 					if (files.length == 1) {
 						finalFiles.add(files[0]);
-						userDir = filesChooser.getSelectedFiles()[0].getAbsolutePath();
+						userDir = filesChooser.getFiles()[0].getAbsolutePath();
 						dirFileTxtFld.setText(userDir);
 					} else {
 						String fileNames = "";
@@ -146,7 +151,7 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 							fileNames += file.getName() + "/";
 							finalFiles.add(file);
 						}
-						userDir = filesChooser.getSelectedFiles()[0].getParent();
+						userDir = filesChooser.getFiles()[0].getParent();
 						dirFileTxtFld.setText(userDir + "(" + fileNames + ")");
 					}
 
@@ -350,14 +355,15 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 				List<String> xmlElements = iWordParser.getXMLFromWord(file.getAbsolutePath());
 
-				JFileChooser saveFileChooser = new JFileChooser();
-				saveFileChooser.setCurrentDirectory(new File(userDir));
-				saveFileChooser.setDialogTitle("Save your new XML file(s)");
-				saveFileChooser.setSelectedFile(new File(file.getAbsolutePath().replaceAll(".docx", ".xml")));
-				int retval = saveFileChooser.showSaveDialog(WToXMLMainFrame.this);
-				if (retval == JFileChooser.APPROVE_OPTION) {
+				FileDialog saveFileChooser = new FileDialog(WToXMLMainFrame.this, "Save your new XML file(s)",
+						FileDialog.SAVE);
+				saveFileChooser.setDirectory(userDir);
+				saveFileChooser.setFile(file.getAbsolutePath().replaceAll(".docx", ".xml"));
+				saveFileChooser.setVisible(true);
+				if (saveFileChooser.getDirectory() != null && saveFileChooser.getFile() != null) {
 
-					FileWriter writer = new FileWriter(saveFileChooser.getSelectedFile());
+					FileWriter writer = new FileWriter(
+							saveFileChooser.getDirectory() + StaticData.OS_FILE_SEP + saveFileChooser.getFile());
 					for (String str : xmlElements) {
 						writer.write(str);
 					}
@@ -379,5 +385,4 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 		progressBar.setString("Export finished. Thank you");
 	}
 
-	
 }

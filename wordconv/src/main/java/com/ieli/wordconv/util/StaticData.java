@@ -18,4 +18,5 @@ public class StaticData {
 	}
 
 	public static final String OS_NEW_LINE = System.getProperty("line.separator");
+	public static final String OS_FILE_SEP = System.getProperty("file.separator");
 }

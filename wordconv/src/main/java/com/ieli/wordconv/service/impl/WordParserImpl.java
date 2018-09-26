@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -12,6 +13,7 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFPicture;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
+import com.ieli.wordconv.model.BookXML;
 import com.ieli.wordconv.service.IWordParser;
 import com.ieli.wordconv.util.StaticData;
 
@@ -23,9 +25,10 @@ public class WordParserImpl implements IWordParser {
 		XWPFDocument xdoc = new XWPFDocument(OPCPackage.open(fis));
 		List<XWPFParagraph> paragraphList = xdoc.getParagraphs();
 
-		List<String> xmlElements = new ArrayList<String>();
-		xmlElements.add("<?xml version=\"1.0\" standalone=\"yes\"?>" + StaticData.OS_NEW_LINE);
-		xmlElements.add("<books>" + StaticData.OS_NEW_LINE);
+		List<BookXML> xmlElements = new ArrayList<BookXML>();
+		xmlElements.add(new BookXML("",
+				"<?xml version=\"1.0\"  encoding=\"UTF-8\" standalone=\"yes\"?>" + StaticData.OS_NEW_LINE, ""));
+		xmlElements.add(new BookXML("<book>" + StaticData.OS_NEW_LINE, "", ""));
 
 		String style = "";
 		String text = "";
@@ -49,24 +52,37 @@ public class WordParserImpl implements IWordParser {
 					List<XWPFPicture> pics = run.getEmbeddedPictures();
 					for (XWPFPicture pic : pics) {
 						style = par.getStyle();
-						text = pic.getCTPicture().getNvPicPr().getCNvPr().getDescr().substring(text.lastIndexOf(':'));
+						if (style == null) {
+							style = "normal";
+						}
+						String desc = pic.getCTPicture().getNvPicPr().getCNvPr().getDescr();
+						if (!desc.equals("")) {
+							text = desc.substring(desc.lastIndexOf(':')).replace(":", "");
+						}
 						if (text.trim().equals("")) {
 							text = pic.getCTPicture().getNvPicPr().getCNvPr().getName();
 						}
-						text = "images/" + text.substring(text.lastIndexOf('.')) +  ".tif";
+						text = "<Img href=\"images/" + FilenameUtils.removeExtension(text) + ".tif\" />";
 						noImages = true;
 					}
 				}
 			}
 
 			if (!(text.trim().equals("") && !noImages)) {
-				xmlElements.add("<" + style + ">" + StaticData.OS_NEW_LINE + text + StaticData.OS_NEW_LINE + "<" + style
-						+ "/>" + StaticData.OS_NEW_LINE);
+				xmlElements.add(new BookXML("<" + style + ">" + StaticData.OS_NEW_LINE, text + StaticData.OS_NEW_LINE,
+						"</" + style + ">" + StaticData.OS_NEW_LINE));
 			}
 		}
-		xmlElements.add("</books>");
+		xmlElements.add(new BookXML("", "", "</book>"));
+
 		xdoc.close();
-		return xmlElements;
+
+		List<String> finalList = new ArrayList<String>();
+		for (BookXML book : xmlElements) {
+			finalList.add(book.getTagStart() + book.getContent() + book.getTagEnd());
+		}
+
+		return finalList;
 	}
 
 }
