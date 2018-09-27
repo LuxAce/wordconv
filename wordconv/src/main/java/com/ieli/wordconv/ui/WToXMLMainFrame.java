@@ -353,23 +353,21 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 			try {
 
+				progressBar.setString("Parsing all paragraphs...");
 				List<BookXML> xmlElements = iWordParser.getXMLFromWord(file.getAbsolutePath());
+				progressBar.setValue(30);
+
+				progressBar.setString("Formatting similar paragraphs...");
 				List<BookXML> formattedXMLElements = ixmlFormatter.formatXMLList(xmlElements);
+				progressBar.setValue(60);
 
-				List<String> styles = new ArrayList<String>();
-				List<String> types = new ArrayList<String>();
+				List<String> styles = getStyles();
 
-				for (int i = 0; i < startingStyleTbl.getRowCount(); i++) {
-					String style = startingStyleTbl.getValueAt(i, 0).toString();
-					styles.add(style);
-				}
+				List<String> types = getTypes();
 
-				for (int i = 0; i < pageTypesTbl.getRowCount(); i++) {
-					String type = pageTypesTbl.getValueAt(i, 0).toString();
-					types.add(type);
-				}
-
+				progressBar.setString("Adding new styles...");
 				List<BookXML> modifiedXMLElements = ixmlModifier.modifyXMLList(formattedXMLElements, styles, types);
+				progressBar.setValue(90);
 
 				FileDialog saveFileChooser = new FileDialog(WToXMLMainFrame.this, "Save your new XML file(s)",
 						FileDialog.SAVE);
@@ -383,38 +381,13 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 					appendToReport("Found " + modifiedXMLElements.size() + " paragraphs", "normal");
 					appendToReport("Parsing paragraphs...", "normal");
 					reportDialog.appendText("<hr>");
+
+					progressBar.setString("Adding reports...");
 					for (BookXML bookXML : modifiedXMLElements) {
-						if (!bookXML.getTagStart().trim().equals("")
-								&& !bookXML.getTagStart().trim().equals("<book>")) {
-
-							if (bookXML.getTagStart().trim().equals("<normal>")) {
-								if (bookXML.getContent().contains("href")) {
-									appendToReport(
-											"Image style not found adding default: "
-													+ bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
-											"warn");
-								} else {
-									appendToReport(
-											"<u>Image style</u>: "
-													+ bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
-											"normal");
-								}
-							} else {
-								appendToReport(
-										"<u>Style:</u> " + bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
-										"normal");
-							}
-
-							if (bookXML.getContent().contains("href")) {
-								appendToReport("<u>Image Path:</u> " + bookXML.getContent().replaceAll("<img href=", "")
-										.replaceAll(">", "").replaceAll("/", ""), "normal");
-							} else {
-								appendToReport("<u>Text:</u> " + bookXML.getContent(), "normal");
-							}
-							reportDialog.appendText("<hr>");
-						}
+						addReport(bookXML);
 						writer.write(bookXML.toString());
 					}
+					progressBar.setValue(100);
 					writer.close();
 
 				}
@@ -428,9 +401,56 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 			reportDialog.appendText(
 					"<br /><h3 style='color:green;'>Done parsing file: " + file.getAbsolutePath() + "</u></h3>");
 			reportDialog.appendText("<br /><hr>");
+
+			progressBar.setString("Done with document: " + file.getName());
+			progressBar.setValue(0);
 		}
 
 		progressBar.setString("Export finished. Thank you");
+	}
+
+	private void addReport(BookXML bookXML) {
+		if (!bookXML.getTagStart().trim().equals("") && !bookXML.getTagStart().trim().equals("<book>")) {
+
+			if (bookXML.getTagStart().trim().equals("<normal>")) {
+				if (bookXML.getContent().contains("href")) {
+					appendToReport("Image style not found adding default: "
+							+ bookXML.getTagStart().replace("<", "").replaceAll(">", ""), "warn");
+				} else {
+					appendToReport("<u>Image style</u>: " + bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
+							"normal");
+				}
+			} else {
+				appendToReport("<u>Style:</u> " + bookXML.getTagStart().replace("<", "").replaceAll(">", ""), "normal");
+			}
+
+			if (bookXML.getContent().contains("href")) {
+				appendToReport("<u>Image Path:</u> "
+						+ bookXML.getContent().replaceAll("<img href=", "").replaceAll(">", "").replaceAll("/", ""),
+						"normal");
+			} else {
+				appendToReport("<u>Text:</u> " + bookXML.getContent(), "normal");
+			}
+			reportDialog.appendText("<hr>");
+		}
+	}
+
+	private List<String> getTypes() {
+		List<String> types = new ArrayList<String>();
+		for (int i = 0; i < pageTypesTbl.getRowCount(); i++) {
+			String type = pageTypesTbl.getValueAt(i, 0).toString();
+			types.add(type);
+		}
+		return types;
+	}
+
+	private List<String> getStyles() {
+		List<String> styles = new ArrayList<String>();
+		for (int i = 0; i < startingStyleTbl.getRowCount(); i++) {
+			String style = startingStyleTbl.getValueAt(i, 0).toString();
+			styles.add(style);
+		}
+		return styles;
 	}
 
 	public void appendToReport(String newData, String type) {
