@@ -22,8 +22,6 @@ import com.ieli.wordconv.util.StackTraceHandler;
 
 import net.miginfocom.swing.MigLayout;
 
-
-
 public class ReportDialog extends JDialog {
 
 	final static Logger logger = Logger.getLogger(ReportDialog.class);
@@ -64,6 +62,14 @@ public class ReportDialog extends JDialog {
 				dispose();
 			}
 		});
+
+		JButton btnClear = new JButton("Clear");
+		btnClear.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				infoTextPane.setText("");
+			}
+		});
+		buttonPane.add(btnClear);
 		okButton.setActionCommand("OK");
 		buttonPane.add(okButton);
 		getRootPane().setDefaultButton(okButton);

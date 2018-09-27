@@ -10,4 +10,5 @@ import com.ieli.wordconv.model.BookXML;
 public interface IWordParser {
 
 	List<BookXML> getXMLFromWord(String inputFile) throws InvalidFormatException, IOException;
+
 }

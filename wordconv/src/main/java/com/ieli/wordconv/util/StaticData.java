@@ -24,4 +24,13 @@ public class StaticData {
 	public static final String OS_NEW_LINE = System.getProperty("line.separator");
 	public static final String OS_FILE_SEP = System.getProperty("file.separator");
 
+	public static final String HTML_H4_OPEN = "<h4>";
+	public static final String HTML_H4_CLOSE = "</h4>";
+	
+	public static final String HTML_ERROR_OPEN = "<h3 style=\"color:red;\">";
+	public static final String HTML_ERROR_CLOSE = "</h3>";
+	
+	public static final String HTML_WARN_OPEN = "<h3 style=\"color:#ff9966;\">";
+	public static final String HTML_WARN_CLOSE = "</h3>";
+
 }

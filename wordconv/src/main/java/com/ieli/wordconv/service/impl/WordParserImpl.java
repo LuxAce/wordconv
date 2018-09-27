@@ -32,19 +32,15 @@ public class WordParserImpl implements IWordParser {
 
 		String style = "";
 		String text = "";
-
 		for (XWPFParagraph par : paragraphList) {
 
 			boolean noImages = false;
 			if (par.getStyle() != null) {
-
 				style = par.getStyle();
-
 			} else {
 				style = "normal";
 			}
-			text = par.getParagraphText();
-
+			text = par.getParagraphText().replaceAll("(^\\h*)|(\\h*$)", "").trim();
 			List<XWPFRun> runs = par.getRuns();
 			if (!runs.isEmpty()) {
 				for (XWPFRun run : runs) {
@@ -55,6 +51,7 @@ public class WordParserImpl implements IWordParser {
 						if (style == null) {
 							style = "normal";
 						}
+
 						String desc = pic.getCTPicture().getNvPicPr().getCNvPr().getDescr();
 						if (!desc.equals("")) {
 							text = desc.substring(desc.lastIndexOf(':')).replace(":", "");
@@ -62,7 +59,7 @@ public class WordParserImpl implements IWordParser {
 						if (text.trim().equals("")) {
 							text = pic.getCTPicture().getNvPicPr().getCNvPr().getName();
 						}
-						text = "<Img href=\"images/" + FilenameUtils.removeExtension(text) + ".tif\" />";
+						text = "<img href=\"images/" + FilenameUtils.removeExtension(text) + ".tif\" />";
 						noImages = true;
 					}
 				}

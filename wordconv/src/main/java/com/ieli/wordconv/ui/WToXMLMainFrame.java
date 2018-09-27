@@ -34,8 +34,10 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import com.ieli.wordconv.model.BookXML;
 import com.ieli.wordconv.service.IWordParser;
 import com.ieli.wordconv.service.IXMLFormatter;
+import com.ieli.wordconv.service.IXMLModifier;
 import com.ieli.wordconv.service.impl.WordParserImpl;
 import com.ieli.wordconv.service.impl.XMLFormatterImpl;
+import com.ieli.wordconv.service.impl.XMLModifierImpl;
 import com.ieli.wordconv.util.CustomTableModel;
 import com.ieli.wordconv.util.OSDetector;
 import com.ieli.wordconv.util.ScreenConfig;
@@ -63,6 +65,7 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 
 	IWordParser iWordParser = new WordParserImpl();
 	IXMLFormatter ixmlFormatter = new XMLFormatterImpl();
+	IXMLModifier ixmlModifier = new XMLModifierImpl();
 
 	private ReportDialog reportDialog;
 
@@ -347,64 +350,69 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 		for (File file : files) {
 			progressBar.setString("Generating XML for file: " + file.getName());
 			reportDialog.appendText("<br /><h3><u>Parsing file: " + file.getAbsolutePath() + "</u></h3>");
-			//
+
 			try {
-				// String output =
-				// iWordParser.getFileOutputData(file.getAbsolutePath(),
-				// new ArrayList<Object>(prop.keySet()), new
-				// ArrayList<Object>(prop.values()), progressBar,
-				// reportDialog);
-				//
 
 				List<BookXML> xmlElements = iWordParser.getXMLFromWord(file.getAbsolutePath());
 				List<BookXML> formattedXMLElements = ixmlFormatter.formatXMLList(xmlElements);
 
+				List<String> styles = new ArrayList<String>();
+				List<String> types = new ArrayList<String>();
+
+				for (int i = 0; i < startingStyleTbl.getRowCount(); i++) {
+					String style = startingStyleTbl.getValueAt(i, 0).toString();
+					styles.add(style);
+				}
+
+				for (int i = 0; i < pageTypesTbl.getRowCount(); i++) {
+					String type = pageTypesTbl.getValueAt(i, 0).toString();
+					types.add(type);
+				}
+
+				List<BookXML> modifiedXMLElements = ixmlModifier.modifyXMLList(formattedXMLElements, styles, types);
+
 				FileDialog saveFileChooser = new FileDialog(WToXMLMainFrame.this, "Save your new XML file(s)",
 						FileDialog.SAVE);
 				saveFileChooser.setDirectory(userDir);
-				saveFileChooser.setFile(file.getAbsolutePath().replaceAll(".docx", ".xml"));
+				saveFileChooser.setFile(file.getName().replaceAll(".docx", ".xml"));
 				saveFileChooser.setVisible(true);
 				if (saveFileChooser.getDirectory() != null && saveFileChooser.getFile() != null) {
-					formattedXMLElements.add(new BookXML("", "", "</book>"));
+					modifiedXMLElements.add(new BookXML("", "", "</book>"));
 
-					// if (startingStyleTbl.getRowCount() > 0 &&
-					// pageTypesTbl.getRowCount() > 0) {
-					//
-					// for (int i = 0; i < startingStyleTbl.getRowCount(); i++)
-					// {
-					//
-					// String startingTag = startingStyleTbl.getValueAt(i,
-					// 0).toString();
-					// String endingTag = startingStyleTbl.getValueAt(i + 1,
-					// 0).toString();
-					//
-					// int booksIndex = 0;
-					// for (BookXML bookXML : formattedXMLElements) {
-					// if (bookXML.getTagStart().equals("<" + startingTag +
-					// ">")) {
-					//
-					// BookXML dynBookXML = new
-					// BookXML(pageTypesTbl.getValueAt(i, 0).toString(), "",
-					// "");
-					// formattedXMLElements.add(booksIndex - 1, dynBookXML);
-					//
-					// } else {
-					// BookXML dynBookXML = new
-					// BookXML(pageTypesTbl.getValueAt(i, 0).toString(), "",
-					// "");
-					// formattedXMLElements.add(booksIndex + 1, dynBookXML);
-					// break;
-					// }
-					//
-					// booksIndex++;
-					// }
-					// }
-					//
-					// }
+					FileWriter writer = new FileWriter(saveFileChooser.getDirectory() + saveFileChooser.getFile());
+					appendToReport("Found " + modifiedXMLElements.size() + " paragraphs", "normal");
+					appendToReport("Parsing paragraphs...", "normal");
+					reportDialog.appendText("<hr>");
+					for (BookXML bookXML : modifiedXMLElements) {
+						if (!bookXML.getTagStart().trim().equals("")
+								&& !bookXML.getTagStart().trim().equals("<book>")) {
 
-					FileWriter writer = new FileWriter(
-							saveFileChooser.getDirectory() + StaticData.OS_FILE_SEP + saveFileChooser.getFile());
-					for (BookXML bookXML : formattedXMLElements) {
+							if (bookXML.getTagStart().trim().equals("<normal>")) {
+								if (bookXML.getContent().contains("href")) {
+									appendToReport(
+											"Image style not found adding default: "
+													+ bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
+											"warn");
+								} else {
+									appendToReport(
+											"<u>Image style</u>: "
+													+ bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
+											"normal");
+								}
+							} else {
+								appendToReport(
+										"<u>Style:</u> " + bookXML.getTagStart().replace("<", "").replaceAll(">", ""),
+										"normal");
+							}
+
+							if (bookXML.getContent().contains("href")) {
+								appendToReport("<u>Image Path:</u> " + bookXML.getContent().replaceAll("<img href=", "")
+										.replaceAll(">", "").replaceAll("/", ""), "normal");
+							} else {
+								appendToReport("<u>Text:</u> " + bookXML.getContent(), "normal");
+							}
+							reportDialog.appendText("<hr>");
+						}
 						writer.write(bookXML.toString());
 					}
 					writer.close();
@@ -423,6 +431,20 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 		}
 
 		progressBar.setString("Export finished. Thank you");
+	}
+
+	public void appendToReport(String newData, String type) {
+		if (!newData.equals("")) {
+
+			if (type.equals("normal")) {
+				reportDialog.appendText(StaticData.HTML_H4_OPEN + newData + StaticData.HTML_H4_CLOSE);
+			} else if (type.equals("error")) {
+				reportDialog.appendText(StaticData.HTML_ERROR_OPEN + newData + StaticData.HTML_ERROR_CLOSE);
+			} else if (type.equals("warn")) {
+				reportDialog.appendText(StaticData.HTML_WARN_OPEN + newData + StaticData.HTML_WARN_CLOSE);
+			}
+		}
+
 	}
 
 }
