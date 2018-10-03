@@ -377,7 +377,10 @@ public class WToXMLMainFrame extends JFrame implements PropertyChangeListener {
 				if (saveFileChooser.getDirectory() != null && saveFileChooser.getFile() != null) {
 					modifiedXMLElements.add(new BookXML("", "", "</book>"));
 
-					FileWriter writer = new FileWriter(saveFileChooser.getDirectory() + saveFileChooser.getFile());
+					String filePath = saveFileChooser.getDirectory() + saveFileChooser.getFile();
+					String finalPath = filePath.replace(file.getName(), "");
+
+					FileWriter writer = new FileWriter(new File(finalPath));
 					appendToReport("Found " + modifiedXMLElements.size() + " paragraphs", "normal");
 					appendToReport("Parsing paragraphs...", "normal");
 					reportDialog.appendText("<hr>");
